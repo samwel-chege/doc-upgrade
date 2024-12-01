@@ -65,13 +65,13 @@ const DocumentViewer = () => {
   };
 
   return (
-    <div className="section document-viewer-section bg-gray-100 py-8">
+  <div className="section document-viewer-section bg-gray-100 py-8">
   <div className="container mx-auto px-4">
     
     {/* Heading Section */}
     <div className="mb-8 text-center" data-aos="fade-up">
       <h2 className="text-3xl font-bold text-purple-400">
-        View <span className="block text-purple-400">Documents</span>
+        View Documents
       </h2>
       <p className="text-gray-600 mt-2">
         View the original document with its improved version side by side.

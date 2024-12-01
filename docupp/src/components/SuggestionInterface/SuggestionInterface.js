@@ -7,7 +7,6 @@ import Swal from 'sweetalert2'
 const SuggestionInterface = ({ documentId }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false); // Track if suggestions are loaded
-  const [notification, setNotification] = useState(''); // State for the notification
 
   // Fetch suggestions from the API
   const fetchSuggestions = async () => {
