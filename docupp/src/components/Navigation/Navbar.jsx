@@ -46,7 +46,7 @@ const Navbar = () => {
         </div>
         {isOpen && (
           <div className="md:hidden space-y-2 py-2">
-            <a href="#home" className="block hover:underline">
+            <a href="/" className="block hover:underline">
               Home
             </a>
             <a href="/document" className="block hover:underline">
