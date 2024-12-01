@@ -1,0 +1,41 @@
+@font-face {
+  font-family: 'Proxima Nova Normal';
+  src: url('../font/Proxima Nova Font.otf'),
+  url('../font/Proxima Nova Font.otf') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Proxima Nova Bold';
+  src: url('../font/Proxima Nova ScOsf Bold.otf'),
+  url('../font/Proxima Nova ScOsf Bold.otf') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Proxima Nova Normal', sans-serif;
+  --default-yellow:#E1E138;
+  --default-green:#2EA625 ;
+}
+h1,h2,h3,h4,h5,h6{
+  font-family: 'Proxima Nova Bold', sans-serif;
+  font-weight: bold;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+} */
