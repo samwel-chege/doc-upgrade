@@ -1,40 +1,19 @@
 "use client";
-import { useState, useEffect } from 'react';
-import SuggestionInterface from "@/components/SuggestionInterface/SuggestionInterface"; // Import your SuggestionInterface
+import { useEffect } from 'react';
+import SuggestionInterface from "@/components/SuggestionInterface/SuggestionInterface"; 
 import { IoCloudDownloadOutline } from "react-icons/io5";
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchDocument } from '@/redux/slices/sliceActions';
 
 const DocumentViewer = () => {
-  const [originalDocument, setOriginalDocument] = useState("");
-  const [improvedDocument, setImprovedDocument] = useState("");
-  const [documentId, setDocumentId] = useState(null); 
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const {documents, loading, error} = useSelector(state => state.document);
+  const documentId = documents?.data?.latest_document?.id;
+  const improvedDocument = documents?.data?.latest_document?.improved_content
+  const originalDocument = documents?.data?.latest_document?.original_content
 
   useEffect(() => {
-    const fetchDocument = async () => {
-      try {
-        const response = await fetch('http://127.0.0.1:5555/documents/latest', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('JWT')}`, 
-          },
-        });
-  
-        if (!response.ok) {
-          throw new Error('Failed to fetch the latest document');
-        }
-  
-        const data = await response.json();
-        
-        setOriginalDocument(data.latest_document.original_content);
-        setImprovedDocument(data.latest_document.improved_content);
-        setDocumentId(data.latest_document.id); // Set the document ID
-      } catch (err) {
-        setError(err.message);
-      }
-    };
-  
-    fetchDocument();
+    dispatch(fetchDocument())
   }, []);
 
   // Function to handle export to Word
@@ -117,7 +96,7 @@ const DocumentViewer = () => {
       </div>
     </div>
 
-    {/* Render SuggestionInterface */}
+    {/* SuggestionInterface */}
     {documentId && <SuggestionInterface documentId={documentId} />}
   </div>
 </div>

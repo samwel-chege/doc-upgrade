@@ -1,10 +1,15 @@
 "use client";
 import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchDocument } from '@/redux/slices/sliceActions';
 import "react-toastify/dist/ReactToastify.css";
 import Swal from 'sweetalert2'
 
 
+
 const SuggestionInterface = ({ documentId }) => {
+  
+  const dispatch = useDispatch();
   const [suggestions, setSuggestions] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false); // Track if suggestions are loaded
 
@@ -56,6 +61,7 @@ const SuggestionInterface = ({ documentId }) => {
 
       // Re-fetch suggestions to show updated list
       fetchSuggestions();
+      dispatch(fetchDocument());
 
     } catch (err) {
       console.error(err.message);

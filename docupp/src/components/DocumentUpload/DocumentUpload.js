@@ -4,8 +4,11 @@ import { useState } from "react";
 import { IoCloudUploadOutline } from "react-icons/io5";
 import { PulseLoader } from "react-spinners";
 import Swal from 'sweetalert2';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchDocument } from '@/redux/slices/sliceActions';
 
 const DocumentUpload = () => {
+  const dispatch = useDispatch();
   const [selectedFile, setSelectedFile] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -49,6 +52,7 @@ const DocumentUpload = () => {
         showConfirmButton: false,
         timer: 2000,
       });
+      dispatch(fetchDocument());
     } catch (error) {
       console.error("Error uploading document:", error.message);
       Swal.fire({
