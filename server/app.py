@@ -9,11 +9,13 @@ from sqlalchemy import func
 from datetime import datetime, timezone
 from werkzeug.utils import secure_filename
 import spacy
+from spacy.symbols import nsubjpass, agent
 import PyPDF2
 import docx
 from flask_cors import CORS
 from docx import Document as DocxDocument
 import io
+import re
 
 
 from models import db, Document, Suggestion, DocumentHistory, StopWord, Word
@@ -76,22 +78,47 @@ def improve_document(original_content):
     # Improved content (initially the same as original content)
     improved_content = original_content
     
-    # Example of extracting suggestions
+    # Simplify words
     suggestions = []
     for token in doc:
-        if token.is_stop:
-            suggestions.append({
-                "suggestion_text": f"Consider removing stopword: {token.text}",
-                "original_word": token.text,  # Track the word being targeted
-                "suggestion_type": "remove_stopword"
-            })
-        elif token.is_alpha and len(token.text) > 6:  # Example of a rule to improve word usage
+        if token.is_alpha and len(token.text) > 6: 
             suggestions.append({
                 "suggestion_text": f"Try simplifying: {token.text}",
                 "original_word": token.text,  # Track the complex word
                 "suggested_word": token.lemma_,  # Example: use lemma or another simpler word
                 "suggestion_type": "simplify_word"
             })
+
+    #Detect passive voice
+    for sentence in doc.sents:
+      for token in sentence:
+        # Check if the token is a verb and has a passive subject
+        if token.pos_ == "VERB" and any(child.dep_ == "nsubjpass" for child in token.children):
+            # Check for auxiliary verbs associated with the verb
+            if any(child.dep_ == "aux" or child.dep_ == "auxpass" for child in token.children):
+                suggestions.append({
+                    "suggestion_text": f"Passive voice detected: '{sentence.text.strip()}'. Consider rephrasing.",
+                    "original_word": sentence.text.strip(),
+                    "suggestion_type": "passive_voice"
+                })
+                break  # Only need to detect one instance per sentence
+
+    # Detect repetition
+    word_counts = {}
+    for token in doc:
+        if token.is_alpha:
+            word = token.lemma_.lower()
+            word_counts[word] = word_counts.get(word, 0) + 1      
+
+
+     # Add suggestions for repeated words
+    for word, count in word_counts.items():
+        if count > 2:  # Customize threshold for what counts as repetitive
+            suggestions.append({
+                "suggestion_text": f"Repetition detected: The word '{word}' appears {count} times.",
+                "original_word": word,
+                "suggestion_type": "repetition"
+            })                   
 
     return improved_content, suggestions
 
@@ -215,7 +242,6 @@ def get_document_suggestions(document_id):
 
 @app.route('/suggestions/accept/<int:suggestion_id>', methods=['POST'])
 def accept_suggestion(suggestion_id):
-
     # Fetch the suggestion
     suggestion = Suggestion.query.get(suggestion_id)
     if not suggestion:
@@ -233,13 +259,29 @@ def accept_suggestion(suggestion_id):
         # Replace the original word with the suggested word in the improved content
         if suggestion.original_word and suggestion.suggested_word:
             improved_content = improved_content.replace(suggestion.original_word, suggestion.suggested_word)
-    elif suggestion.suggestion_type == 'remove_stopword':
-        # Remove the stopword from the improved content
+    elif suggestion.suggestion_type == 'passive_voice':
         if suggestion.original_word:
-            improved_content = improved_content.replace(suggestion.original_word, '')
+            # Convert passive voice to active voice
+            improved_sentence = convert_to_active_voice(suggestion.original_word)
+            improved_content = improved_content.replace(suggestion.original_word, improved_sentence)
+    elif suggestion.suggestion_type == 'repetition':
+        # Remove extra occurrences of the repeated word while keeping one instance
+        if suggestion.original_word:
+            words = improved_content.split()
+            filtered_words = []
+            seen = set()
+            for word in words:
+                lower_word = word.lower()
+                if lower_word == suggestion.original_word.lower():
+                    if lower_word not in seen:
+                        filtered_words.append(word)  # Keep the first occurrence
+                        seen.add(lower_word)
+                else:
+                    filtered_words.append(word)
+            improved_content = ' '.join(filtered_words)
 
     # Update the document's improved content and mark the suggestion as accepted
-    document.improved_content = improved_content.strip()  # Strip to remove any extra spaces from removing stopwords
+    document.improved_content = improved_content.strip()  # Strip to remove any extra spaces
     suggestion.is_accepted = True
 
     try:
@@ -251,6 +293,34 @@ def accept_suggestion(suggestion_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to accept suggestion: {str(e)}'}), 500
+    
+def convert_to_active_voice(passive_sentence):
+    """
+    Convert a passive voice sentence to active voice using spaCy.
+    """
+    nlp = spacy.load("en_core_web_sm")
+    doc = nlp(passive_sentence)
+    subject, agent, verb, aux = None, None, None, None
+
+    for token in doc:
+        if token.dep == nsubjpass:  # Passive subject
+            subject = token.text
+        elif token.dep == agent:  # Agent (introduced with "by")
+            agent = " ".join([child.text for child in token.subtree])
+        elif token.pos_ == "VERB":  # Main verb
+            verb = token.lemma_
+        elif token.dep_ == "aux":  # Auxiliary verb
+            aux = token.text
+
+    if subject and verb:
+        # Build active sentence
+        if agent:
+            return f"{agent.replace('by ', '').strip().capitalize()} {verb} {subject}."
+        else:
+            return f"Someone {verb} {subject}."
+
+    # Return original if conversion is not possible
+    return passive_sentence    
 
 
 # DENY SUGGESTION
